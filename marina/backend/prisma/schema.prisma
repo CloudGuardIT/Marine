@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String   @unique
+  password  String
+  role      String   @default("customer") // admin, operator, customer
+  createdAt DateTime @default(now()) @map("created_at")
+
+  vessels          Vessel[]
+  tractorRequests  TractorRequest[] @relation("Requester")
+  operatedRequests TractorRequest[] @relation("Operator")
+  activityLogs     ActivityLog[]
+
+  @@map("users")
+}
+
+model Vessel {
+  id                 String   @id @default(uuid())
+  name               String
+  registrationNumber String   @unique @map("registration_number")
+  length             Float
+  type               String   @default("motorboat")
+  ownerId            String   @map("owner_id")
+  owner              User     @relation(fields: [ownerId], references: [id])
+  spotId             String?  @unique @map("spot_id")
+  spot               ParkingSpot? @relation(fields: [spotId], references: [id])
+  status             String   @default("parked") // parked, in_water, maintenance, transit
+  lastLaunch         DateTime? @map("last_launch")
+  imageUrl           String?  @map("image_url")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  tractorRequests TractorRequest[]
+  activityLogs    ActivityLog[]
+  reservations    Reservation[]
+
+  @@map("vessels")
+}
+
+model ParkingSpot {
+  id     String @id @default(uuid())
+  number String @unique
+  zone   String // A, B, C, D
+  row    Int
+  col    Int
+  status String @default("available") // available, occupied, reserved, maintenance
+  width  Float  @default(3.0)
+  length Float  @default(10.0)
+
+  vessel       Vessel?
+  reservations Reservation[]
+
+  @@map("parking_spots")
+}
+
+model TractorRequest {
+  id          String    @id @default(uuid())
+  vesselId    String    @map("vessel_id")
+  vessel      Vessel    @relation(fields: [vesselId], references: [id])
+  requesterId String   @map("requester_id")
+  requester   User      @relation("Requester", fields: [requesterId], references: [id])
+  operatorId  String?   @map("operator_id")
+  operator    User?     @relation("Operator", fields: [operatorId], references: [id])
+  type        String    // launch, retrieve
+  status      String    @default("pending") // pending, accepted, in_progress, completed, cancelled
+  priority    Int       @default(0)
+  notes       String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  acceptedAt  DateTime? @map("accepted_at")
+  completedAt DateTime? @map("completed_at")
+
+  @@map("tractor_requests")
+}
+
+model ActivityLog {
+  id        String   @id @default(uuid())
+  userId    String?  @map("user_id")
+  user      User?    @relation(fields: [userId], references: [id])
+  vesselId  String?  @map("vessel_id")
+  vessel    Vessel?  @relation(fields: [vesselId], references: [id])
+  action    String
+  details   String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("activity_log")
+}
+
+model Reservation {
+  id        String   @id @default(uuid())
+  vesselId  String   @map("vessel_id")
+  vessel    Vessel   @relation(fields: [vesselId], references: [id])
+  spotId    String   @map("spot_id")
+  spot      ParkingSpot @relation(fields: [spotId], references: [id])
+  startDate DateTime @map("start_date")
+  endDate   DateTime @map("end_date")
+  status    String   @default("active") // active, completed, cancelled
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("reservations")
+}
