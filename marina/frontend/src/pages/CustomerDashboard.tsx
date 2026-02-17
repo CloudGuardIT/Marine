@@ -5,11 +5,13 @@ import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../hooks/useSocket';
 import { STATUS_LABELS, VESSEL_TYPES, timeAgo } from '../utils';
 import type { Vessel, MyQueuePosition } from '../types';
-import { Ship, Anchor, MapPin, Clock, Loader2, X, ArrowRight } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
+import { Ship, Anchor, MapPin, Clock, Loader2, X, ArrowRight, LogOut, User, Bell } from 'lucide-react';
 
 export default function CustomerDashboard() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
   const [searchParams] = useSearchParams();
   const isPreview = searchParams.get('preview') === 'true' && user?.role === 'admin';
   const [vessels, setVessels] = useState<Vessel[]>([]);
@@ -55,9 +57,10 @@ export default function CustomerDashboard() {
     setBookingVessel(vessel.id);
     try {
       await api.createRequest({ vesselId: vessel.id, type });
+      toast.success(type === 'launch' ? 'בקשת השקה נשלחה' : 'בקשת שליפה נשלחה');
       await loadData();
     } catch (err: any) {
-      alert(err.message || 'שגיאה ביצירת בקשה');
+      toast.error(err.message || 'שגיאה ביצירת בקשה');
     } finally {
       setBookingVessel(null);
     }
@@ -66,9 +69,10 @@ export default function CustomerDashboard() {
   const handleCancel = async (requestId: string) => {
     try {
       await api.cancelRequest(requestId);
+      toast.info('הבקשה בוטלה');
       await loadData();
     } catch (err: any) {
-      alert(err.message || 'שגיאה בביטול בקשה');
+      toast.error(err.message || 'שגיאה בביטול בקשה');
     }
   };
 
@@ -82,7 +86,44 @@ export default function CustomerDashboard() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="min-h-screen bg-gray-50">
+      {/* Customer header */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Anchor size={22} className="text-blue-600" />
+            <span className="font-bold text-gray-800">מרינה</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {activeRequests.length > 0 && (
+              <span className="relative">
+                <Bell size={18} className="text-yellow-600" />
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
+                  {activeRequests.length}
+                </span>
+              </span>
+            )}
+            <button
+              onClick={() => navigate('/customer/profile')}
+              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition"
+              title="הגדרות פרופיל"
+            >
+              <User size={18} />
+            </button>
+            {!isPreview && (
+              <button
+                onClick={logout}
+                className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                title="התנתקות"
+              >
+                <LogOut size={18} />
+              </button>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
       {isPreview && (
         <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
           <span className="text-sm text-amber-800 font-medium">תצוגה מקדימה — תצוגת לקוח</span>
@@ -245,6 +286,7 @@ export default function CustomerDashboard() {
           })}
         </div>
       )}
+      </div>
     </div>
   );
 }

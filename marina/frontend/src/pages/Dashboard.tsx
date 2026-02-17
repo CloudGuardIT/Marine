@@ -3,36 +3,47 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../hooks/useSocket';
+import { useToast } from '../context/ToastContext';
 import StatsBar from '../components/StatsBar';
 import TractorQueue from '../components/TractorQueue';
 import MarinaMap from '../components/MarinaMap';
 import InWaterPanel from '../components/InWaterPanel';
 import ActivityFeed from '../components/ActivityFeed';
-import { Eye, Users, Truck } from 'lucide-react';
+import { Loader2, RefreshCw, Users, Truck } from 'lucide-react';
 import type { DashboardStats, TractorRequest, ParkingSpot, Vessel, ActivityLog } from '../types';
 
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [queue, setQueue] = useState<TractorRequest[]>([]);
   const [spots, setSpots] = useState<ParkingSpot[]>([]);
   const [vessels, setVessels] = useState<Vessel[]>([]);
   const [activities, setActivities] = useState<ActivityLog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const loadAll = useCallback(async () => {
-    const [s, q, sp, v, a] = await Promise.all([
-      api.getDashboard(),
-      api.getQueue(),
-      api.getSpots(),
-      api.getVessels(),
-      api.getActivity(15),
-    ]);
-    setStats(s);
-    setQueue(q);
-    setSpots(sp);
-    setVessels(v);
-    setActivities(a.activities);
+    try {
+      setError('');
+      const [s, q, sp, v, a] = await Promise.all([
+        api.getDashboard(),
+        api.getQueue(),
+        api.getSpots(),
+        api.getVessels(),
+        api.getActivity(15),
+      ]);
+      setStats(s);
+      setQueue(q);
+      setSpots(sp);
+      setVessels(v);
+      setActivities(a.activities);
+    } catch (err: any) {
+      setError(err.message || 'שגיאה בטעינת נתונים');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { loadAll(); }, [loadAll]);
@@ -48,10 +59,20 @@ export default function Dashboard() {
   const handleMoveVessel = async (vesselId: string, newSpotId: string) => {
     try {
       await api.updateVessel(vesselId, { spotId: newSpotId });
+      toast.success('כלי השייט הועבר בהצלחה');
     } catch (err: any) {
-      alert(err.message || 'שגיאה בהעברת כלי שייט');
+      toast.error(err.message || 'שגיאה בהעברת כלי שייט');
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64 text-gray-400">
+        <Loader2 className="animate-spin ml-2" size={20} />
+        טוען לוח בקרה...
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -78,6 +99,15 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      {error && (
+        <div className="flex items-center justify-between bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+          <span>{error}</span>
+          <button onClick={loadAll} className="flex items-center gap-1 text-red-600 hover:text-red-800 font-medium">
+            <RefreshCw size={14} /> נסה שוב
+          </button>
+        </div>
+      )}
 
       <StatsBar stats={stats} />
 

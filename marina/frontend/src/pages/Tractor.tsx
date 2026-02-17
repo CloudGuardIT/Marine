@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Truck, Plus, ArrowRight } from 'lucide-react';
+import { Truck, Plus, ArrowRight, Loader2, RefreshCw } from 'lucide-react';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../hooks/useSocket';
@@ -17,16 +17,43 @@ export default function Tractor() {
   const [history, setHistory] = useState<TractorRequest[]>([]);
   const [vessels, setVessels] = useState<Vessel[]>([]);
   const [showCreate, setShowCreate] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const load = useCallback(async () => {
-    const [q, h, v] = await Promise.all([api.getQueue(), api.getRequests(), api.getVessels()]);
-    setQueue(q);
-    setHistory(h);
-    setVessels(v);
+    try {
+      setError('');
+      const [q, h, v] = await Promise.all([api.getQueue(), api.getRequests(), api.getVessels()]);
+      setQueue(q);
+      setHistory(h);
+      setVessels(v);
+    } catch (err: any) {
+      setError(err.message || 'שגיאה בטעינת נתונים');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { load(); }, [load]);
-  useSocket({ 'tractor:created': () => load(), 'tractor:updated': () => load() });
+  useSocket({
+    'tractor:created': () => load(),
+    'tractor:updated': () => load(),
+    'vessel:updated': () => load(),
+  });
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2 mb-6">
+          <Truck size={24} /> תור טרקטור
+        </h1>
+        <div className="flex items-center justify-center h-48 text-gray-400">
+          <Loader2 className="animate-spin ml-2" size={20} />
+          טוען...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -51,6 +78,15 @@ export default function Tractor() {
         </button>
       </div>
 
+      {error && (
+        <div className="mb-4 flex items-center justify-between bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+          <span>{error}</span>
+          <button onClick={load} className="flex items-center gap-1 text-red-600 hover:text-red-800 font-medium">
+            <RefreshCw size={14} /> נסה שוב
+          </button>
+        </div>
+      )}
+
       {/* Active Queue */}
       <div className="mb-6">
         <TractorQueue queue={queue} onUpdate={load} />
@@ -68,13 +104,14 @@ export default function Tractor() {
                 <th className="px-4 py-2 text-right font-medium">מבקש</th>
                 <th className="px-4 py-2 text-right font-medium">מפעיל</th>
                 <th className="px-4 py-2 text-right font-medium">סטטוס</th>
+                <th className="px-4 py-2 text-right font-medium">עדיפות</th>
                 <th className="px-4 py-2 text-right font-medium">נוצר</th>
                 <th className="px-4 py-2 text-right font-medium">הושלם</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {history.map((r) => (
-                <tr key={r.id} className="hover:bg-gray-50">
+                <tr key={r.id} className="hover:bg-gray-50" title={r.notes || undefined}>
                   <td className="px-4 py-2 font-medium">{r.vessel.name}</td>
                   <td className="px-4 py-2">{r.type === 'launch' ? 'השקה' : 'שליפה'}</td>
                   <td className="px-4 py-2">{r.requester.name}</td>
@@ -82,6 +119,7 @@ export default function Tractor() {
                   <td className="px-4 py-2">
                     <span className={`status-${r.status} text-xs px-2 py-0.5 rounded-full`}>{STATUS_LABELS[r.status]}</span>
                   </td>
+                  <td className="px-4 py-2 text-gray-500">{r.priority > 0 ? r.priority : '—'}</td>
                   <td className="px-4 py-2 text-xs text-gray-400">{formatDateTime(r.createdAt)}</td>
                   <td className="px-4 py-2 text-xs text-gray-400">{r.completedAt ? formatDateTime(r.completedAt) : '—'}</td>
                 </tr>

@@ -7,7 +7,10 @@ interface AuthState {
   token: string | null;
   loading: boolean;
   login: (phone: string, password: string) => Promise<void>;
+  register: (name: string, phone: string, password: string) => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
+  setUser: (user: User) => void;
 }
 
 const AuthContext = createContext<AuthState>(null!);
@@ -38,14 +41,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(res.user);
   }, []);
 
+  const register = useCallback(async (name: string, phone: string, password: string) => {
+    const res = await api.register({ name, phone, password });
+    localStorage.setItem('marina_token', res.token);
+    setToken(res.token);
+    setUser(res.user);
+  }, []);
+
   const logout = useCallback(() => {
     localStorage.removeItem('marina_token');
     setToken(null);
     setUser(null);
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    if (token) {
+      const u = await api.me();
+      setUser(u);
+    }
+  }, [token]);
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, logout, refreshUser, setUser }}>
       {children}
     </AuthContext.Provider>
   );

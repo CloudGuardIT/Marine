@@ -1,7 +1,9 @@
-import { Truck, Clock, User, ChevronLeft } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Truck, Clock, User, ChevronLeft, Play } from 'lucide-react';
 import type { TractorRequest } from '../types';
 import { STATUS_LABELS, timeAgo } from '../utils';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { api } from '../api';
 
 interface Props {
@@ -12,6 +14,7 @@ interface Props {
 
 export default function TractorQueue({ queue, onUpdate, compact }: Props) {
   const { user } = useAuth();
+  const toast = useToast();
   const isStaff = user?.role === 'admin' || user?.role === 'operator';
 
   async function handleAction(id: string, action: 'accept' | 'complete' | 'cancel') {
@@ -19,9 +22,10 @@ export default function TractorQueue({ queue, onUpdate, compact }: Props) {
       if (action === 'accept') await api.acceptRequest(id);
       else if (action === 'complete') await api.completeRequest(id);
       else await api.cancelRequest(id);
+      toast.success(action === 'accept' ? 'הבקשה אושרה' : action === 'complete' ? 'הבקשה הושלמה' : 'הבקשה בוטלה');
       onUpdate();
     } catch (err: any) {
-      alert(err.message);
+      toast.error(err.message);
     }
   }
 
@@ -92,9 +96,9 @@ export default function TractorQueue({ queue, onUpdate, compact }: Props) {
       )}
       {compact && queue.length > 5 && (
         <div className="px-4 py-2 border-t border-gray-100 text-center">
-          <a href="/tractor" className="text-blue-600 text-sm hover:underline inline-flex items-center gap-1">
+          <Link to="/admin/tractor" className="text-blue-600 text-sm hover:underline inline-flex items-center gap-1">
             הצג הכל <ChevronLeft size={14} />
-          </a>
+          </Link>
         </div>
       )}
     </div>

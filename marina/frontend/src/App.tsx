@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import Layout from './components/Layout';
 import Login from './pages/Login';
+import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Vessels from './pages/Vessels';
 import Spots from './pages/Spots';
@@ -9,7 +10,9 @@ import Tractor from './pages/Tractor';
 import Activity from './pages/Activity';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
+import Reservations from './pages/Reservations';
 import CustomerDashboard from './pages/CustomerDashboard';
+import CustomerProfile from './pages/CustomerProfile';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -34,6 +37,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
 
       {/* Role-based redirect from root */}
       <Route
@@ -59,16 +63,25 @@ export default function App() {
         <Route path="spots" element={<Spots />} />
         <Route path="tractor" element={<Tractor />} />
         <Route path="activity" element={<Activity />} />
+        <Route path="reservations" element={<Reservations />} />
         <Route path="reports" element={<AdminRoute><Reports /></AdminRoute>} />
         <Route path="settings" element={<AdminRoute><Settings /></AdminRoute>} />
       </Route>
 
-      {/* Customer standalone route */}
+      {/* Customer standalone routes */}
       <Route
         path="/customer"
         element={
           <ProtectedRoute>
             <CustomerDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/customer/profile"
+        element={
+          <ProtectedRoute>
+            <CustomerProfile />
           </ProtectedRoute>
         }
       />

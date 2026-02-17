@@ -32,6 +32,11 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ phone, password }),
     }),
+  register: (data: { name: string; phone: string; password: string }) =>
+    request<{ token: string; user: import('./types').User }>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   me: () => request<import('./types').User>('/auth/me'),
 
   // Vessels
@@ -46,6 +51,14 @@ export const api = {
 
   // Spots
   getSpots: () => request<import('./types').ParkingSpot[]>('/spots'),
+  getSpotLayout: () =>
+    request<{ spots: import('./types').ParkingSpot[]; zones: Record<string, import('./types').ParkingSpot[]> }>('/spots/layout'),
+  createSpot: (data: { number: string; zone: string; row: number; col: number; width?: number; length?: number; status?: string }) =>
+    request<import('./types').ParkingSpot>('/spots', { method: 'POST', body: JSON.stringify(data) }),
+  updateSpot: (id: string, data: any) =>
+    request<import('./types').ParkingSpot>(`/spots/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteSpot: (id: string) =>
+    request<{ success: boolean }>(`/spots/${id}`, { method: 'DELETE' }),
 
   // Tractor
   getQueue: () => request<import('./types').TractorRequest[]>('/tractor/queue'),
@@ -62,15 +75,19 @@ export const api = {
     request<import('./types').MyQueuePosition[]>('/tractor/my-position'),
 
   // Activity
-  getActivity: (limit = 50, offset = 0) =>
+  getActivity: (limit = 50, offset = 0, action?: string) =>
     request<{ activities: import('./types').ActivityLog[]; total: number }>(
-      `/activity?limit=${limit}&offset=${offset}`
+      `/activity?limit=${limit}&offset=${offset}${action ? `&action=${action}` : ''}`
     ),
 
   // Reservations
   getReservations: () => request<import('./types').Reservation[]>('/reservations'),
-  createReservation: (data: any) =>
+  createReservation: (data: { vesselId: string; spotId: string; startDate: string; endDate: string }) =>
     request<import('./types').Reservation>('/reservations', { method: 'POST', body: JSON.stringify(data) }),
+  updateReservation: (id: string, data: any) =>
+    request<import('./types').Reservation>(`/reservations/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteReservation: (id: string) =>
+    request<{ success: boolean }>(`/reservations/${id}`, { method: 'DELETE' }),
 
   // Reports
   getDashboard: () => request<import('./types').DashboardStats>('/reports/dashboard'),
@@ -93,5 +110,12 @@ export const api = {
 
   // Settings (users)
   getUsers: () => request<import('./types').User[]>('/settings/users'),
-  getSpotLayout: () => request<import('./types').ParkingSpot[]>('/spots/layout'),
+  createUser: (data: { name: string; phone: string; password: string; role?: string }) =>
+    request<import('./types').User>('/settings/users', { method: 'POST', body: JSON.stringify(data) }),
+  updateUser: (id: string, data: { name?: string; phone?: string; role?: string; password?: string }) =>
+    request<import('./types').User>(`/settings/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteUser: (id: string) =>
+    request<{ success: boolean }>(`/settings/users/${id}`, { method: 'DELETE' }),
+  updateProfile: (data: { name?: string; password?: string }) =>
+    request<import('./types').User>('/settings/profile', { method: 'PUT', body: JSON.stringify(data) }),
 };

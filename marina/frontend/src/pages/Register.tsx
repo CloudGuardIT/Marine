@@ -3,10 +3,12 @@ import { Navigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Anchor } from 'lucide-react';
 
-export default function Login() {
-  const { user, login, loading } = useAuth();
+export default function Register() {
+  const { user, register, loading } = useAuth();
+  const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -19,11 +21,19 @@ export default function Login() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError('');
+    if (password !== confirmPassword) {
+      setError('הסיסמאות אינן תואמות');
+      return;
+    }
+    if (password.length < 8) {
+      setError('הסיסמה חייבת להכיל לפחות 8 תווים');
+      return;
+    }
     setSubmitting(true);
     try {
-      await login(phone, password);
+      await register(name, phone, password);
     } catch (err: any) {
-      setError(err.message || 'שגיאה בהתחברות');
+      setError(err.message || 'שגיאה בהרשמה');
     } finally {
       setSubmitting(false);
     }
@@ -36,11 +46,23 @@ export default function Login() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-600 text-white mb-4">
             <Anchor size={32} />
           </div>
-          <h1 className="text-2xl font-bold text-gray-800">מרינה</h1>
-          <p className="text-gray-500 mt-1">מערכת ניהול מעגנה</p>
+          <h1 className="text-2xl font-bold text-gray-800">הרשמה</h1>
+          <p className="text-gray-500 mt-1">צור חשבון חדש במערכת</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">שם מלא</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="ישראל ישראלי"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              required
+              minLength={2}
+            />
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">מספר טלפון</label>
             <input
@@ -59,7 +81,20 @@ export default function Login() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••"
+              placeholder="לפחות 8 תווים"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              required
+              dir="ltr"
+              minLength={8}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">אימות סיסמה</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="הזן שוב את הסיסמה"
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               required
               dir="ltr"
@@ -77,14 +112,14 @@ export default function Login() {
             disabled={submitting}
             className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50"
           >
-            {submitting ? 'מתחבר...' : 'התחברות'}
+            {submitting ? 'נרשם...' : 'הרשמה'}
           </button>
         </form>
 
         <div className="mt-4 text-center text-sm text-gray-500">
-          אין לך חשבון?{' '}
-          <Link to="/register" className="text-blue-600 hover:underline font-medium">
-            הרשמה
+          כבר יש לך חשבון?{' '}
+          <Link to="/login" className="text-blue-600 hover:underline font-medium">
+            התחברות
           </Link>
         </div>
       </div>

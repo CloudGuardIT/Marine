@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { ScrollText, ChevronLeft } from 'lucide-react';
 import type { ActivityLog } from '../types';
 import { ACTION_LABELS, timeAgo } from '../utils';
@@ -41,9 +42,9 @@ export default function ActivityFeed({ activities, compact }: Props) {
       )}
       {compact && (
         <div className="px-4 py-2 border-t border-gray-100 text-center">
-          <a href="/activity" className="text-blue-600 text-sm hover:underline inline-flex items-center gap-1">
+          <Link to="/admin/activity" className="text-blue-600 text-sm hover:underline inline-flex items-center gap-1">
             הצג הכל <ChevronLeft size={14} />
-          </a>
+          </Link>
         </div>
       )}
     </div>
