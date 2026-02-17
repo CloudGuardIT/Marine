@@ -4,6 +4,7 @@ import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
 import prisma from '../lib/db';
 import { generateToken, authMiddleware, AuthRequest } from '../middleware/auth';
+import { getIO } from '../socket';
 
 const router = Router();
 
@@ -37,16 +38,44 @@ const registerSchema = z.object({
 });
 
 router.post('/login', loginLimiter, async (req, res) => {
+  const ip = req.ip || req.socket.remoteAddress || 'unknown';
   try {
     const { phone, password } = loginSchema.parse(req.body);
     const user = await prisma.user.findUnique({ where: { phone } });
     if (!user) {
+      // Log failed login — unknown phone
+      const event = await prisma.activityLog.create({
+        data: {
+          action: 'login_failed',
+          details: `ניסיון התחברות נכשל — טלפון לא קיים (${phone.slice(0, 3)}***) מ-IP: ${ip}`,
+        },
+      });
+      getIO().emit('security:event', { action: 'login_failed', details: event.details, ip, createdAt: event.createdAt });
       return res.status(401).json({ error: 'מספר טלפון או סיסמה שגויים' });
     }
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) {
+      // Log failed login — wrong password
+      const event = await prisma.activityLog.create({
+        data: {
+          userId: user.id,
+          action: 'login_failed',
+          details: `ניסיון התחברות נכשל — סיסמה שגויה למשתמש "${user.name}" מ-IP: ${ip}`,
+        },
+      });
+      getIO().emit('security:event', { action: 'login_failed', details: event.details, ip, createdAt: event.createdAt });
       return res.status(401).json({ error: 'מספר טלפון או סיסמה שגויים' });
     }
+
+    // Log successful login
+    await prisma.activityLog.create({
+      data: {
+        userId: user.id,
+        action: 'user_login',
+        details: `"${user.name}" התחבר/ה למערכת מ-IP: ${ip}`,
+      },
+    });
+
     const token = generateToken(user);
     res.json({
       token,

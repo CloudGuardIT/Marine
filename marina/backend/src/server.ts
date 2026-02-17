@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import http from 'http';
 import { initSocket } from './socket';
 import { workerManager } from './workers/worker-manager';
@@ -12,8 +13,13 @@ import activityRoutes from './routes/activity';
 import reservationRoutes from './routes/reservations';
 import reportRoutes from './routes/reports';
 import settingsRoutes from './routes/settings';
+import zoneRoutes from './routes/zones';
 
 const app = express();
+
+// Trust proxy (behind nginx) - must be before rate limiter
+app.set('trust proxy', 1);
+
 const server = http.createServer(app);
 
 // Security middleware
@@ -37,16 +43,18 @@ app.use(cors({
 
 app.use(express.json({ limit: '1mb' }));
 
-// Trust proxy (behind nginx)
-app.set('trust proxy', 1);
+// Global API rate limiter: 200 requests per 15 minutes per IP
+app.use('/api/', rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  message: { error: 'יותר מדי בקשות. נסה שוב מאוחר יותר' },
+  standardHeaders: true,
+  legacyHeaders: false,
+}));
 
-// Health check with worker statuses
+// Health check - minimal public info
 app.get('/api/health', (_req, res) => {
-  res.json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    workers: workerManager.getStatuses(),
-  });
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // Routes
@@ -58,6 +66,12 @@ app.use('/api/activity', activityRoutes);
 app.use('/api/reservations', reservationRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/zones', zoneRoutes);
+
+// 404 handler
+app.use((_req: express.Request, res: express.Response) => {
+  res.status(404).json({ error: 'Not found' });
+});
 
 // Error handler
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
@@ -69,7 +83,7 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 initSocket(server);
 
 const PORT = parseInt(process.env.PORT || '3001');
-server.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '127.0.0.1', () => {
   console.log(`Marina backend running on port ${PORT}`);
 
   // Initialize and start all background workers

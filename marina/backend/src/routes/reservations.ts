@@ -50,7 +50,7 @@ router.post('/', requireRole('admin'), async (req: AuthRequest, res) => {
 
 router.put('/:id', requireRole('admin'), async (req: AuthRequest, res) => {
   try {
-    const data = reservationSchema.partial().extend({ status: z.string().optional() }).parse(req.body);
+    const data = reservationSchema.partial().extend({ status: z.enum(['active', 'completed', 'cancelled']).optional() }).parse(req.body);
     const reservation = await prisma.reservation.update({
       where: { id: req.params.id },
       data: {

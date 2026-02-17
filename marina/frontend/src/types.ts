@@ -22,6 +22,16 @@ export interface Vessel {
   createdAt: string;
 }
 
+export interface Zone {
+  id: string;
+  name: string;
+  color: string;
+  polygon: [number, number][];
+  spots?: ParkingSpot[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ParkingSpot {
   id: string;
   number: string;
@@ -31,6 +41,9 @@ export interface ParkingSpot {
   status: 'available' | 'occupied' | 'reserved' | 'maintenance';
   width: number;
   length: number;
+  lat?: number | null;
+  lng?: number | null;
+  zoneId?: string | null;
   vessel?: Vessel | null;
 }
 

@@ -4,6 +4,7 @@ import { Truck, Plus, ArrowRight, Loader2, RefreshCw } from 'lucide-react';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../hooks/useSocket';
+import { useToast } from '../context/ToastContext';
 import TractorQueue from '../components/TractorQueue';
 import type { TractorRequest, Vessel } from '../types';
 import { STATUS_LABELS, formatDateTime } from '../utils';
@@ -34,9 +35,16 @@ export default function Tractor() {
     }
   }, []);
 
+  const toast = useToast();
   useEffect(() => { load(); }, [load]);
   useSocket({
-    'tractor:created': () => load(),
+    'tractor:created': (data: any) => {
+      load();
+      const vesselName = data?.vessel?.name || 'כלי שייט';
+      const requesterName = data?.requester?.name || '';
+      const typeLabel = data?.type === 'launch' ? 'השקה' : 'שליפה';
+      toast.info(`בקשת טרקטור חדשה: ${typeLabel} — "${vesselName}" (${requesterName})`);
+    },
     'tractor:updated': () => load(),
     'vessel:updated': () => load(),
   });

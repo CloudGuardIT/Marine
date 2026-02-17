@@ -76,6 +76,15 @@ export const api = {
   deleteSpot: (id: string) =>
     request<{ success: boolean }>(`/spots/${id}`, { method: 'DELETE' }),
 
+  // Zones
+  getZones: () => request<import('./types').Zone[]>('/zones'),
+  createZone: (data: { name: string; color: string; polygon: [number, number][] }) =>
+    request<import('./types').Zone>('/zones', { method: 'POST', body: JSON.stringify(data) }),
+  updateZone: (id: string, data: { name?: string; color?: string; polygon?: [number, number][] }) =>
+    request<import('./types').Zone>(`/zones/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteZone: (id: string) =>
+    request<{ success: boolean }>(`/zones/${id}`, { method: 'DELETE' }),
+
   // Tractor
   getQueue: () => request<import('./types').TractorRequest[]>('/tractor/queue'),
   getRequests: () => request<import('./types').TractorRequest[]>('/tractor'),
@@ -96,6 +105,12 @@ export const api = {
   getActivity: (limit = 50, offset = 0, action?: string) =>
     request<{ activities: import('./types').ActivityLog[]; total: number }>(
       `/activity?limit=${limit}&offset=${offset}${action ? `&action=${action}` : ''}`
+    ),
+
+  // Security events (admin)
+  getSecurityEvents: (limit = 50) =>
+    request<{ events: import('./types').ActivityLog[]; total: number }>(
+      `/activity/security?limit=${limit}`
     ),
 
   // Reservations
@@ -129,7 +144,11 @@ export const api = {
 
   // Health
   getHealth: () =>
-    request<{ status: string; timestamp: string; workers: import('./types').WorkerStatus[] }>('/health'),
+    request<{ status: string; timestamp: string }>('/health'),
+
+  // Worker status (admin)
+  getWorkerStatus: () =>
+    request<import('./types').WorkerStatus[]>('/settings/workers'),
 
   // Settings (users)
   getUsers: () => request<import('./types').User[]>('/settings/users'),

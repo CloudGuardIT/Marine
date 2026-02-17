@@ -6,12 +6,13 @@ import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../components/ConfirmDialog';
 import { useSocket } from '../hooks/useSocket';
 import { STATUS_LABELS } from '../utils';
-import MarinaMap from '../components/MarinaMap';
-import type { ParkingSpot } from '../types';
+import InteractiveMap from '../components/InteractiveMap';
+import type { ParkingSpot, Zone } from '../types';
 
 export default function Spots() {
   const { user } = useAuth();
   const [spots, setSpots] = useState<ParkingSpot[]>([]);
+  const [zones, setZones] = useState<Zone[]>([]);
   const [zoneFilter, setZoneFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<ParkingSpot | null>(null);
@@ -24,7 +25,9 @@ export default function Spots() {
   const load = useCallback(async () => {
     try {
       setError('');
-      setSpots(await api.getSpots());
+      const [sp, z] = await Promise.all([api.getSpots(), api.getZones()]);
+      setSpots(sp);
+      setZones(z);
     } catch (err: any) {
       setError(err.message || 'שגיאה בטעינת מקומות חניה');
     } finally {
@@ -128,7 +131,17 @@ export default function Spots() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Map */}
-        <MarinaMap spots={spots} />
+        <InteractiveMap
+          spots={spots}
+          zones={zones}
+          userRole={user?.role}
+          onRemoveVessel={async (vesselId, _spotId) => {
+            await api.updateVessel(vesselId, { spotId: null });
+            load();
+          }}
+          onSpotsChanged={load}
+          onZonesChanged={load}
+        />
 
         {/* Table */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100">
@@ -136,10 +149,13 @@ export default function Spots() {
             <span className="font-semibold text-gray-800">רשימת מקומות</span>
             <select value={zoneFilter} onChange={(e) => setZoneFilter(e.target.value)} className="border rounded-lg px-2 py-1 text-sm">
               <option value="">כל האזורים</option>
-              <option value="A">אזור A</option>
-              <option value="B">אזור B</option>
-              <option value="C">אזור C</option>
-              <option value="D">אזור D</option>
+              {zones.map((z) => (
+                <option key={z.id} value={z.name}>אזור {z.name}</option>
+              ))}
+              {/* Fallback for spots without zone records */}
+              {[...new Set(spots.map((s) => s.zone))].filter((z) => !zones.find((zn) => zn.name === z)).map((z) => (
+                <option key={z} value={z}>אזור {z}</option>
+              ))}
             </select>
           </div>
           <div className="max-h-96 overflow-auto">
@@ -193,6 +209,7 @@ export default function Spots() {
       {showModal && (
         <SpotModal
           spot={editing}
+          zones={zones}
           onClose={() => setShowModal(false)}
           onSave={load}
         />
@@ -201,8 +218,9 @@ export default function Spots() {
   );
 }
 
-function SpotModal({ spot, onClose, onSave }: {
+function SpotModal({ spot, zones, onClose, onSave }: {
   spot: ParkingSpot | null;
+  zones: Zone[];
   onClose: () => void;
   onSave: () => void;
 }) {
@@ -257,10 +275,17 @@ function SpotModal({ spot, onClose, onSave }: {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">אזור</label>
               <select value={form.zone} onChange={(e) => setForm({ ...form, zone: e.target.value })} className="w-full px-3 py-2 border rounded-lg text-sm">
-                <option value="A">A</option>
-                <option value="B">B</option>
-                <option value="C">C</option>
-                <option value="D">D</option>
+                {zones.map((z) => (
+                  <option key={z.id} value={z.name}>{z.name}</option>
+                ))}
+                {zones.length === 0 && (
+                  <>
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                    <option value="C">C</option>
+                    <option value="D">D</option>
+                  </>
+                )}
               </select>
             </div>
           </div>

@@ -28,7 +28,7 @@ export default function Settings() {
     setError('');
     Promise.all([
       api.getUsers(),
-      api.getHealth().then((h) => h.workers),
+      api.getWorkerStatus(),
     ]).then(([u, w]) => {
       setUsers(u);
       setWorkers(w);

@@ -49,12 +49,15 @@ router.get('/layout', requireRole('admin', 'operator'), async (_req, res) => {
 
 const spotSchema = z.object({
   number: z.string().min(1),
-  zone: z.enum(['A', 'B', 'C', 'D']),
+  zone: z.string().min(1),
   row: z.number().int().min(0),
   col: z.number().int().min(0),
   status: z.enum(['available', 'occupied', 'reserved', 'maintenance']).optional(),
   width: z.number().positive().optional(),
   length: z.number().positive().optional(),
+  lat: z.number().optional(),
+  lng: z.number().optional(),
+  zoneId: z.string().uuid().optional(),
 });
 
 router.post('/', requireRole('admin'), async (req: AuthRequest, res) => {

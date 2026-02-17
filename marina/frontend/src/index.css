@@ -1,3 +1,6 @@
+@import 'leaflet/dist/leaflet.css';
+@import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -54,3 +57,32 @@ body {
 /* Hide scrollbar on mobile nav */
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Leaflet map overrides */
+.leaflet-container {
+  font-family: inherit;
+  z-index: 0;
+}
+
+.spot-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+.zone-label {
+  background: rgba(255,255,255,0.85) !important;
+  border: none !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15) !important;
+  border-radius: 6px !important;
+  padding: 2px 8px !important;
+  font-family: inherit;
+}
+
+.zone-label::before {
+  display: none !important;
+}
+
+/* Geoman toolbar RTL fix */
+.leaflet-pm-toolbar {
+  direction: ltr;
+}

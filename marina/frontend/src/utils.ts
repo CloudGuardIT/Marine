@@ -35,10 +35,12 @@ export const ACTION_LABELS: Record<string, string> = {
 };
 
 export const VESSEL_TYPES: Record<string, string> = {
-  motorboat: 'סירת מנוע',
   sailboat: 'מפרשית',
-  yacht: 'יאכטה',
+  motorboat: 'סירת מנוע',
   jetski: 'אופנוע ים',
+  yacht: 'יאכטה',
+  fishing: 'סירת דיג',
+  other: 'אחר',
 };
 
 export function formatDate(dateStr: string): string {

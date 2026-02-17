@@ -45,6 +45,19 @@ model Vessel {
   @@map("vessels")
 }
 
+model Zone {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  color     String   @default("#3B82F6")
+  polygon   Json     // array of [lat, lng] pairs
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  spots ParkingSpot[]
+
+  @@map("zones")
+}
+
 model ParkingSpot {
   id     String @id @default(uuid())
   number String @unique
@@ -54,6 +67,10 @@ model ParkingSpot {
   status String @default("available") // available, occupied, reserved, maintenance
   width  Float  @default(3.0)
   length Float  @default(10.0)
+  lat    Float?
+  lng    Float?
+  zoneId String? @map("zone_id")
+  zoneRef Zone?  @relation(fields: [zoneId], references: [id])
 
   vessel       Vessel?
   reservations Reservation[]
