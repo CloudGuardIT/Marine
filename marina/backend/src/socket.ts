@@ -4,13 +4,19 @@ import jwt from 'jsonwebtoken';
 
 let io: Server;
 
-const JWT_SECRET = process.env.JWT_SECRET || 'marina-jwt-secret-key-2024-very-secure';
+if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET environment variable is required');
+const JWT_SECRET: string = process.env.JWT_SECRET;
 
 export function initSocket(httpServer: HttpServer) {
+  const allowedOrigins = (process.env.CORS_ORIGIN || 'https://elireuven.online')
+    .split(',')
+    .map((o) => o.trim());
+
   io = new Server(httpServer, {
     cors: {
-      origin: '*',
+      origin: allowedOrigins,
       methods: ['GET', 'POST'],
+      credentials: true,
     },
   });
 

@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import http from 'http';
 import { initSocket } from './socket';
 import { workerManager } from './workers/worker-manager';
@@ -15,9 +16,29 @@ import settingsRoutes from './routes/settings';
 const app = express();
 const server = http.createServer(app);
 
-// Middleware
-app.use(cors({ origin: '*' }));
-app.use(express.json());
+// Security middleware
+app.use(helmet());
+
+const allowedOrigins = (process.env.CORS_ORIGIN || 'https://elireuven.online')
+  .split(',')
+  .map((o) => o.trim());
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, etc from server)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+}));
+
+app.use(express.json({ limit: '1mb' }));
+
+// Trust proxy (behind nginx)
+app.set('trust proxy', 1);
 
 // Health check with worker statuses
 app.get('/api/health', (_req, res) => {
@@ -40,7 +61,7 @@ app.use('/api/settings', settingsRoutes);
 
 // Error handler
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error('Server error:', err);
+  console.error('Server error:', err.message);
   res.status(500).json({ error: 'שגיאת שרת פנימית' });
 });
 

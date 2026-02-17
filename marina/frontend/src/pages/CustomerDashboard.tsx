@@ -1,13 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../hooks/useSocket';
 import { STATUS_LABELS, VESSEL_TYPES, timeAgo } from '../utils';
 import type { Vessel, MyQueuePosition } from '../types';
-import { Ship, Anchor, MapPin, Clock, Loader2, X } from 'lucide-react';
+import { Ship, Anchor, MapPin, Clock, Loader2, X, ArrowRight } from 'lucide-react';
 
 export default function CustomerDashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isPreview = searchParams.get('preview') === 'true' && user?.role === 'admin';
   const [vessels, setVessels] = useState<Vessel[]>([]);
   const [activeRequests, setActiveRequests] = useState<MyQueuePosition[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,6 +83,18 @@ export default function CustomerDashboard() {
 
   return (
     <div className="p-6 space-y-6">
+      {isPreview && (
+        <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+          <span className="text-sm text-amber-800 font-medium">תצוגה מקדימה — תצוגת לקוח</span>
+          <button
+            onClick={() => navigate('/admin')}
+            className="flex items-center gap-1.5 text-sm text-amber-700 hover:text-amber-900 font-medium transition"
+          >
+            חזרה לניהול
+            <ArrowRight size={16} />
+          </button>
+        </div>
+      )}
       <div>
         <h1 className="text-2xl font-bold text-gray-800">שלום, {user?.name}</h1>
         <p className="text-gray-500 text-sm mt-1">ניהול כלי השייט שלך</p>

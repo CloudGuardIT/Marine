@@ -11,7 +11,10 @@ export default function Login() {
   const [submitting, setSubmitting] = useState(false);
 
   if (loading) return null;
-  if (user) return <Navigate to="/" replace />;
+  if (user) {
+    const target = user.role === 'customer' ? '/customer' : '/admin';
+    return <Navigate to={target} replace />;
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();

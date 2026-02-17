@@ -7,12 +7,12 @@ import { getIO } from '../socket';
 const router = Router();
 router.use(authMiddleware);
 
-router.get('/', async (_req, res) => {
+router.get('/', requireRole('admin', 'operator'), async (_req, res) => {
   try {
     const spots = await prisma.parkingSpot.findMany({
       include: {
         vessel: {
-          include: { owner: { select: { id: true, name: true, phone: true, role: true } } },
+          include: { owner: { select: { id: true, name: true, role: true } } },
         },
       },
       orderBy: [{ zone: 'asc' }, { row: 'asc' }, { col: 'asc' }],
@@ -24,12 +24,12 @@ router.get('/', async (_req, res) => {
   }
 });
 
-router.get('/layout', async (_req, res) => {
+router.get('/layout', requireRole('admin', 'operator'), async (_req, res) => {
   try {
     const spots = await prisma.parkingSpot.findMany({
       include: {
         vessel: {
-          include: { owner: { select: { id: true, name: true, phone: true, role: true } } },
+          include: { owner: { select: { id: true, name: true, role: true } } },
         },
       },
       orderBy: [{ zone: 'asc' }, { row: 'asc' }, { col: 'asc' }],

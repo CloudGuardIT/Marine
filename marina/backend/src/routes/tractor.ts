@@ -45,7 +45,7 @@ router.get('/my-position', async (req: AuthRequest, res) => {
   }
 });
 
-router.get('/queue', async (_req, res) => {
+router.get('/queue', requireRole('admin', 'operator'), async (_req, res) => {
   try {
     const requests = await prisma.tractorRequest.findMany({
       where: { status: { in: ['pending', 'accepted', 'in_progress'] } },
@@ -94,6 +94,11 @@ router.post('/', async (req: AuthRequest, res) => {
     const data = createSchema.parse(req.body);
     const vessel = await prisma.vessel.findUnique({ where: { id: data.vesselId } });
     if (!vessel) return res.status(404).json({ error: 'כלי שייט לא נמצא' });
+
+    // Customers can only request for their own vessels
+    if (req.user!.role === 'customer' && vessel.ownerId !== req.user!.id) {
+      return res.status(403).json({ error: 'אין הרשאה ליצור בקשה עבור כלי שייט זה' });
+    }
 
     // Validate request type matches vessel status
     if (data.type === 'launch' && vessel.status !== 'parked') {
@@ -247,6 +252,13 @@ router.put('/:id/cancel', async (req: AuthRequest, res) => {
     if (!request) return res.status(404).json({ error: 'בקשה לא נמצאה' });
     if (request.status === 'completed' || request.status === 'cancelled') {
       return res.status(400).json({ error: 'לא ניתן לבטל בקשה זו' });
+    }
+
+    // Only the requester, admin, or operator can cancel
+    const isOwner = request.requesterId === req.user!.id;
+    const isAdminOrOperator = ['admin', 'operator'].includes(req.user!.role);
+    if (!isOwner && !isAdminOrOperator) {
+      return res.status(403).json({ error: 'אין הרשאה לבטל בקשה זו' });
     }
 
     // If it was accepted/in_progress, revert vessel status

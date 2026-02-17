@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Truck, Plus } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Truck, Plus, ArrowRight } from 'lucide-react';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../hooks/useSocket';
@@ -9,6 +10,9 @@ import { STATUS_LABELS, formatDateTime } from '../utils';
 
 export default function Tractor() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isPreview = searchParams.get('preview') === 'true' && user?.role === 'admin';
   const [queue, setQueue] = useState<TractorRequest[]>([]);
   const [history, setHistory] = useState<TractorRequest[]>([]);
   const [vessels, setVessels] = useState<Vessel[]>([]);
@@ -26,6 +30,18 @@ export default function Tractor() {
 
   return (
     <div className="p-6">
+      {isPreview && (
+        <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-6">
+          <span className="text-sm text-amber-800 font-medium">תצוגה מקדימה — תצוגת טרקטור</span>
+          <button
+            onClick={() => navigate('/admin')}
+            className="flex items-center gap-1.5 text-sm text-amber-700 hover:text-amber-900 font-medium transition"
+          >
+            חזרה לניהול
+            <ArrowRight size={16} />
+          </button>
+        </div>
+      )}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
           <Truck size={24} /> תור טרקטור

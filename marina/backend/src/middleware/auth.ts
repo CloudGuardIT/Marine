@@ -2,7 +2,8 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import prisma from '../lib/db';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'marina-jwt-secret-key-2024-very-secure';
+if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET environment variable is required');
+const JWT_SECRET: string = process.env.JWT_SECRET;
 
 export interface AuthRequest extends Request {
   user?: {
@@ -17,7 +18,7 @@ export function generateToken(user: { id: string; name: string; phone: string; r
   return jwt.sign(
     { id: user.id, name: user.name, phone: user.phone, role: user.role },
     JWT_SECRET,
-    { expiresIn: '7d' }
+    { expiresIn: '24h' }
   );
 }
 

@@ -33,13 +33,19 @@ router.get('/', async (req: AuthRequest, res) => {
   }
 });
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', async (req: AuthRequest, res) => {
   try {
     const vessel = await prisma.vessel.findUnique({
       where: { id: req.params.id },
       include: { owner: { select: { id: true, name: true, phone: true, role: true } }, spot: true },
     });
     if (!vessel) return res.status(404).json({ error: 'כלי שייט לא נמצא' });
+
+    // Customers can only view their own vessels
+    if (req.user!.role === 'customer' && vessel.ownerId !== req.user!.id) {
+      return res.status(403).json({ error: 'אין הרשאה לצפות בכלי שייט זה' });
+    }
+
     res.json(vessel);
   } catch (err) {
     res.status(500).json({ error: 'שגיאת שרת' });
