@@ -17,12 +17,14 @@ export default function TractorQueue({ queue, onUpdate, compact }: Props) {
   const toast = useToast();
   const isStaff = user?.role === 'admin' || user?.role === 'operator';
 
-  async function handleAction(id: string, action: 'accept' | 'complete' | 'cancel') {
+  async function handleAction(id: string, action: 'accept' | 'start' | 'complete' | 'cancel') {
     try {
       if (action === 'accept') await api.acceptRequest(id);
+      else if (action === 'start') await api.startRequest(id);
       else if (action === 'complete') await api.completeRequest(id);
       else await api.cancelRequest(id);
-      toast.success(action === 'accept' ? 'הבקשה אושרה' : action === 'complete' ? 'הבקשה הושלמה' : 'הבקשה בוטלה');
+      const labels = { accept: 'הבקשה אושרה', start: 'העבודה החלה', complete: 'הבקשה הושלמה', cancel: 'הבקשה בוטלה' };
+      toast.success(labels[action]);
       onUpdate();
     } catch (err: any) {
       toast.error(err.message);
@@ -74,6 +76,11 @@ export default function TractorQueue({ queue, onUpdate, compact }: Props) {
                       {req.status === 'pending' && (
                         <button onClick={() => handleAction(req.id, 'accept')} className="text-xs bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700">
                           קבל
+                        </button>
+                      )}
+                      {req.status === 'accepted' && (
+                        <button onClick={() => handleAction(req.id, 'start')} className="text-xs bg-indigo-600 text-white px-3 py-1 rounded-lg hover:bg-indigo-700 flex items-center gap-1">
+                          <Play size={12} /> התחל
                         </button>
                       )}
                       {(req.status === 'accepted' || req.status === 'in_progress') && (

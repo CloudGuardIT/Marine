@@ -23,6 +23,7 @@ export const ACTION_LABELS: Record<string, string> = {
   vessel_maintenance: 'תחזוקה',
   tractor_requested: 'בקשת טרקטור',
   tractor_accepted: 'בקשה אושרה',
+  tractor_started: 'עבודה החלה',
   tractor_cancelled: 'בקשה בוטלה',
   tractor_auto_assigned: 'הקצאה אוטומטית',
   tractor_escalated: 'עדיפות עלתה',

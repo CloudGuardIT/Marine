@@ -183,6 +183,36 @@ router.put('/:id/accept', requireRole('admin', 'operator'), async (req: AuthRequ
   }
 });
 
+router.put('/:id/start', requireRole('admin', 'operator'), async (req: AuthRequest, res) => {
+  try {
+    const request = await prisma.tractorRequest.findUnique({ where: { id: req.params.id } });
+    if (!request) return res.status(404).json({ error: 'בקשה לא נמצאה' });
+    if (request.status !== 'accepted') return res.status(400).json({ error: 'ניתן להתחיל רק בקשה שאושרה' });
+
+    const updated = await prisma.tractorRequest.update({
+      where: { id: req.params.id },
+      data: { status: 'in_progress' },
+      include: {
+        vessel: { include: { owner: { select: { id: true, name: true, phone: true, role: true } }, spot: true } },
+        requester: { select: { id: true, name: true, phone: true, role: true } },
+        operator: { select: { id: true, name: true, phone: true, role: true } },
+      },
+    });
+
+    await prisma.activityLog.create({
+      data: { userId: req.user!.id, vesselId: request.vesselId, action: 'tractor_started', details: `עבודה החלה ע"י ${req.user!.name}` },
+    });
+
+    const activity = await prisma.activityLog.findFirst({ orderBy: { createdAt: 'desc' }, include: { user: { select: { id: true, name: true, phone: true, role: true } }, vessel: true } });
+    getIO().emit('tractor:updated', updated);
+    getIO().emit('activity:new', activity);
+    res.json(updated);
+  } catch (err) {
+    console.error('Start request error:', err);
+    res.status(500).json({ error: 'שגיאת שרת' });
+  }
+});
+
 router.put('/:id/complete', requireRole('admin', 'operator'), async (req: AuthRequest, res) => {
   try {
     const request = await prisma.tractorRequest.findUnique({ where: { id: req.params.id }, include: { vessel: true } });

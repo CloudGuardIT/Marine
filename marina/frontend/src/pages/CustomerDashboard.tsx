@@ -3,10 +3,10 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../hooks/useSocket';
-import { STATUS_LABELS, VESSEL_TYPES, timeAgo } from '../utils';
-import type { Vessel, MyQueuePosition } from '../types';
+import { STATUS_LABELS, VESSEL_TYPES, timeAgo, formatDate } from '../utils';
+import type { Vessel, MyQueuePosition, Reservation } from '../types';
 import { useToast } from '../context/ToastContext';
-import { Ship, Anchor, MapPin, Clock, Loader2, X, ArrowRight, LogOut, User, Bell } from 'lucide-react';
+import { Ship, Anchor, MapPin, Clock, Loader2, X, ArrowRight, LogOut, User, Bell, CalendarDays, CheckCircle2 } from 'lucide-react';
 
 export default function CustomerDashboard() {
   const { user, logout } = useAuth();
@@ -16,17 +16,21 @@ export default function CustomerDashboard() {
   const isPreview = searchParams.get('preview') === 'true' && user?.role === 'admin';
   const [vessels, setVessels] = useState<Vessel[]>([]);
   const [activeRequests, setActiveRequests] = useState<MyQueuePosition[]>([]);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
   const [bookingVessel, setBookingVessel] = useState<string | null>(null);
+  const [prevStatuses, setPrevStatuses] = useState<Record<string, string>>({});
 
   const loadData = useCallback(async () => {
     try {
-      const [v, pos] = await Promise.all([
+      const [v, pos, res] = await Promise.all([
         api.getVessels(),
         api.getMyQueuePosition(),
+        api.getReservations(),
       ]);
       setVessels(v);
       setActiveRequests(pos);
+      setReservations(res);
     } catch (err) {
       console.error('Failed to load data:', err);
     } finally {
@@ -35,6 +39,25 @@ export default function CustomerDashboard() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  // Track status changes for real-time notifications
+  useEffect(() => {
+    if (activeRequests.length === 0) return;
+    const newStatuses: Record<string, string> = {};
+    activeRequests.forEach((r) => { newStatuses[r.id] = r.status; });
+
+    // Only notify after initial load
+    if (Object.keys(prevStatuses).length > 0) {
+      activeRequests.forEach((r) => {
+        const prev = prevStatuses[r.id];
+        if (prev && prev !== r.status) {
+          if (r.status === 'accepted') toast.success(`הבקשה ל"${r.vesselName}" אושרה!`);
+          else if (r.status === 'in_progress') toast.info(`העבודה על "${r.vesselName}" החלה`);
+        }
+      });
+    }
+    setPrevStatuses(newStatuses);
+  }, [activeRequests]);
 
   useSocket({
     'tractor:created': () => loadData(),
@@ -284,6 +307,53 @@ export default function CustomerDashboard() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Reservations Section */}
+      {reservations.length > 0 && (
+        <div>
+          <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2 mb-3">
+            <CalendarDays size={20} className="text-purple-600" />
+            ההזמנות שלי
+          </h2>
+          <div className="space-y-2">
+            {reservations.slice(0, 5).map((r) => (
+              <div
+                key={r.id}
+                className={`bg-white rounded-xl border p-3 flex items-center justify-between ${
+                  r.status === 'active' ? 'border-green-200' : 'border-gray-100'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    r.status === 'active' ? 'bg-green-100' : 'bg-gray-100'
+                  }`}>
+                    {r.status === 'active' ? (
+                      <CalendarDays size={16} className="text-green-600" />
+                    ) : (
+                      <CheckCircle2 size={16} className="text-gray-400" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-gray-800">
+                      {r.vessel?.name || 'כלי שייט'} — מקום {r.spot?.number}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {formatDate(r.startDate)} — {formatDate(r.endDate)}
+                    </div>
+                  </div>
+                </div>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                  r.status === 'active' ? 'bg-green-100 text-green-800' :
+                  r.status === 'completed' ? 'bg-gray-100 text-gray-600' :
+                  'bg-red-100 text-red-600'
+                }`}>
+                  {STATUS_LABELS[r.status] || r.status}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
       </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { BarChart3, Ship, ParkingSquare, Truck, Activity, Loader2, RefreshCw, Download } from 'lucide-react';
 import { api } from '../api';
+import { useToast } from '../context/ToastContext';
 import { STATUS_LABELS, ACTION_LABELS } from '../utils';
 import DonutChart from '../components/DonutChart';
 
@@ -25,6 +26,8 @@ export default function Reports() {
   const [activitySummary, setActivitySummary] = useState<{ byDay: Record<string, number>; byAction: Record<string, number>; total: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [exporting, setExporting] = useState('');
+  const toast = useToast();
 
   function load() {
     setLoading(true);
@@ -47,6 +50,20 @@ export default function Reports() {
   }
 
   useEffect(() => { load(); }, []);
+
+  async function handleExport(type: 'vessels' | 'activity' | 'tractor') {
+    setExporting(type);
+    try {
+      if (type === 'vessels') await api.exportVesselsCSV();
+      else if (type === 'activity') await api.exportActivityCSV(7);
+      else await api.exportTractorCSV();
+      toast.success('הקובץ הורד בהצלחה');
+    } catch (err: any) {
+      toast.error(err.message || 'שגיאה בייצוא');
+    } finally {
+      setExporting('');
+    }
+  }
 
   // Group spots overall for donut
   const spotTotals: Record<string, number> = {};
@@ -86,12 +103,32 @@ export default function Reports() {
         <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
           <BarChart3 size={24} /> דוחות
         </h1>
-        <button
-          onClick={load}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 transition shadow-sm"
-        >
-          <RefreshCw size={16} /> רענון
-        </button>
+        <div className="flex gap-2">
+          <div className="relative group">
+            <button
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 transition shadow-sm"
+            >
+              <Download size={16} /> ייצוא CSV
+            </button>
+            <div className="absolute left-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 hidden group-hover:block z-10 min-w-[160px]">
+              <button onClick={() => handleExport('vessels')} disabled={!!exporting} className="w-full text-right px-4 py-2 text-sm hover:bg-gray-50 disabled:opacity-50 flex items-center gap-2">
+                <Ship size={14} /> כלי שייט
+              </button>
+              <button onClick={() => handleExport('tractor')} disabled={!!exporting} className="w-full text-right px-4 py-2 text-sm hover:bg-gray-50 disabled:opacity-50 flex items-center gap-2">
+                <Truck size={14} /> בקשות טרקטור
+              </button>
+              <button onClick={() => handleExport('activity')} disabled={!!exporting} className="w-full text-right px-4 py-2 text-sm hover:bg-gray-50 disabled:opacity-50 flex items-center gap-2">
+                <Activity size={14} /> יומן פעילות
+              </button>
+            </div>
+          </div>
+          <button
+            onClick={load}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 transition shadow-sm"
+          >
+            <RefreshCw size={16} /> רענון
+          </button>
+        </div>
       </div>
 
       {error && (

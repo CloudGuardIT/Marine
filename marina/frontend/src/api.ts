@@ -25,6 +25,22 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return res.json();
 }
 
+async function downloadFile(path: string, filename: string): Promise<void> {
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(`${BASE}${path}`, { headers });
+  if (!res.ok) throw new Error(`Export failed: HTTP ${res.status}`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export const api = {
   // Auth
   login: (phone: string, password: string) =>
@@ -67,6 +83,8 @@ export const api = {
     request<import('./types').TractorRequest>('/tractor', { method: 'POST', body: JSON.stringify(data) }),
   acceptRequest: (id: string) =>
     request<import('./types').TractorRequest>(`/tractor/${id}/accept`, { method: 'PUT' }),
+  startRequest: (id: string) =>
+    request<import('./types').TractorRequest>(`/tractor/${id}/start`, { method: 'PUT' }),
   completeRequest: (id: string) =>
     request<import('./types').TractorRequest>(`/tractor/${id}/complete`, { method: 'PUT' }),
   cancelRequest: (id: string) =>
@@ -103,6 +121,11 @@ export const api = {
     request<{ total: number; completed: number; pending: number; averageMinutes: number }>(
       '/reports/tractor-stats'
     ),
+
+  // CSV Exports
+  exportVesselsCSV: () => downloadFile('/reports/export/vessels', 'vessels.csv'),
+  exportActivityCSV: (days = 7) => downloadFile(`/reports/export/activity?days=${days}`, 'activity.csv'),
+  exportTractorCSV: () => downloadFile('/reports/export/tractor', 'tractor.csv'),
 
   // Health
   getHealth: () =>
